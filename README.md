@@ -7,7 +7,9 @@
 
 ## 演示
 
-![TimeChannel demo](docs/media/timechannel-demo.gif)
+<p align="center">
+  <img src="docs/media/timechannel-demo.gif" alt="TimeChannel demo" width="860">
+</p>
 
 [观看完整演示视频](docs/media/timechannel-demo.mp4)：展示照片隧道穿行、自动漫游、星空背景与照片聚焦效果。
 
