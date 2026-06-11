@@ -7,15 +7,14 @@
 
 ## 运行
 
-无需构建，任意静态服务器即可（图片纹理跨域加载需要 http 协议，不要直接双击打开文件）：
-
 ```bash
 cd TimeChannel
-python3 -m http.server 8765
-# 浏览器打开 http://localhost:8765
+npm install        # 首次
+npm run dev        # 开发：http://localhost:5173
+npm run build      # 产出 dist/（纯静态文件，任意静态服务器可部署）
 ```
 
-首次打开会加载 30 张演示照片（picsum.photos）；离线时自动退化为本地渐变占位图。
+首次打开会加载演示照片（picsum.photos）；离线时自动退化为本地渐变占位图。
 
 ## 玩法
 
@@ -28,7 +27,7 @@ python3 -m http.server 8765
 | 移动鼠标 | 视差环视 |
 | 点击照片 | 灯箱放大查看，点击任意处 / `Esc` 返回 |
 | 「⊕ My Photos」或直接拖入 | 导入照片：单张/批量，JPG/PNG/WebP/GIF + Apple HEIC/HEIF（Safari 原生解码，其他浏览器自动转码）；读取 EXIF 拍摄时间排序，多次导入自动累积 |
-| 拖入文件夹或 Mac 照片图库（.photoslibrary） | 递归扫描，自动只取 originals/Masters 原图、跳过缩略图；超大图库取最近 400 张 |
+| 拖入文件夹或 Mac 照片图库（.photoslibrary） | 递归扫描，自动只取 originals/Masters 原图、跳过缩略图；导入阶段只持久化元数据与微缩图 |
 | 点开照片 → 右侧 STORY 面板 | 为照片写下当时的故事；同一张照片的多条文字按时间线排列（时间轴在文字左侧），存在本地、跨会话保留 |
 | 「◐ Sky」 | 星空配色：薰衣紫 / 玫瑰 / 海洋 / 极光 / 余烬 / 彩虹流转，选择会记住 |
 
@@ -50,9 +49,28 @@ python3 -m http.server 8765
 - 漂浮光尘、隧道尽头的光
 - 速度越快 FOV 越大，有冲刺感；环会缓缓旋转
 
-## 技术
+## 技术与架构
 
-单文件 `index.html`：Three.js r160（CDN importmap）+ EffectComposer
+Vite + 原生 ES 模块（无前端框架），Three.js r160 + EffectComposer
 （RenderPass → UnrealBloomPass → 自定义暗角/颗粒 ShaderPass → OutputPass）。
+
+```
+src/
+├── main.js        # 装配 + 主循环（按序调用各模块 update）
+├── config.js      # 配置、弯道函数、日期格式（纯函数）
+├── events.js      # 极简事件总线
+├── core/          # stage（渲染舞台/后期）、assets（纹理工具）
+├── world/         # tunnel（照片环/回收/路标）、sky（星云/配色）、particles、meteors
+├── album/         # album（照片数据唯一真源）、importer、texture-pool、store（IndexedDB）
+├── interact/      # controls（输入/行进/相机）、focus（取出照片）、hover（悬停）
+└── ui/            # timeline（滑条+HUD）、story（故事面板）、panels、toast、hint
+```
+
+数据流单向：`album` 是照片唯一真源，变更经 `album:changed` 事件广播，
+隧道重铺、时间轴重建、聚焦收起由 main.js 按序编排；
 照片以「环」为单位组织，相机穿过后环被回收到前方并换上下一批照片，实现无限隧道。
 移动端自动降低环数、粒子数与辉光强度。
+
+导入管线使用 worker 解析 EXIF 并生成 96px 微缩图；IndexedDB 持久化相册元数据、
+微缩图和故事。隧道纹理由 `texture-pool` 按可见窗口懒解码为 512px，并用 LRU
+控制 GPU 常驻数量，图库大小与显存占用解耦。

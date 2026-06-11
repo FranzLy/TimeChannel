@@ -1,16 +1,5 @@
-.DS_Store
-
-# Local editor and tool state
-.claude/
-.vscode/
-.idea/
-
-# Dependencies and build output
 node_modules/
 dist/
-build/
-
-# Logs and caches
-*.log
-.cache/
-.vite/
+.DS_Store
+.claude/
+index.html.bak
